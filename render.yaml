@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: bvms-backend
+    runtime: node
+    rootDir: auth-backend
+    plan: free
+    autoDeploy: true
+    buildCommand: npm ci
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Set these in Render dashboard (do not commit secrets):
+      # - MONGO_URI
+      # - ADMIN_PHONE
+      # - ADMIN_PASSWORD
+      # - ADMIN_USERNAME (optional)
+      # - CORS_ORIGIN (your Vercel domain, e.g. https://bvms-.vercel.app)
+

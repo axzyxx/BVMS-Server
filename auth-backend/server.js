@@ -24,9 +24,31 @@ dotenv.config();
 const app = express();
 
 // ✅ Middleware
-app.use(cors());
+app.set("trust proxy", 1);
+
+const corsOrigins = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      // allow server-to-server calls / curl / Render health checks
+      if (!origin) return cb(null, true);
+      // if not configured, allow all (keeps local dev simple)
+      if (corsOrigins.length === 0) return cb(null, true);
+      return corsOrigins.includes(origin) ? cb(null, true) : cb(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: '10mb' })); // Increase limit to handle base64 images
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ✅ Health checks (Render)
+app.get("/", (_req, res) => res.status(200).send("OK"));
+app.get("/api/health", (_req, res) => res.status(200).json({ ok: true }));
 
 // ✅ Routes
 app.use("/api/auth", authRoutes);
@@ -46,6 +68,10 @@ app.use("/api/messages", messagesRoutes);
 app.use("/api/sms", smsRouter);
 
 // ✅ MongoDB Connection
+if (!process.env.MONGO_URI) {
+  console.error("❌ Missing MONGO_URI environment variable");
+  process.exit(1);
+}
 mongoose
   .connect(process.env.MONGO_URI)
   .then(async () => {
